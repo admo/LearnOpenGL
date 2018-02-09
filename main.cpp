@@ -21,18 +21,16 @@ unsigned int indices[] = {
 const char* vertexShaderSource = \
     "#version 330 core\n" \
     "in vec2 aPos;\n" \
-    "out vec4 vertexColor;\n" \
     "void main()\n" \
     "{\n" \
     "   gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);\n" \
-    "   vertexColor = vec4(0.5, 0.0, 0.0, 1.0);\n" \
     "}\n";
 }
 
 const char* fragmentShaderSource = \
     "#version 330 core\n" \
     "out vec4 FragColor;\n" \
-    "in vec4 vertexColor;\n" \
+    "uniform vec4 vertexColor;\n" \
     "void main()\n" \
     "{\n" \
     "   FragColor = vertexColor;\n" \
@@ -148,6 +146,9 @@ int main() {
     // uncomment this call to draw in wireframe polygons.
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+    const auto vertexColorLocation = glGetUniformLocation(shaderProgram, "vertexColor");
+    glUseProgram(shaderProgram);
+
     // render loop
     while (!glfwWindowShouldClose(window)) {
         // input
@@ -160,7 +161,10 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         // draw our first triangle
-        glUseProgram(shaderProgram);
+        const auto timeValue = glfwGetTime();
+        const auto greenValue = static_cast<GLfloat>((std::sin(timeValue)/2.0f) + 0.5f);
+
+        glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
         glBindVertexArray(VAO);
 //        glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
