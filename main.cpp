@@ -21,18 +21,21 @@ unsigned int indices[] = {
 const char* vertexShaderSource = \
     "#version 330 core\n" \
     "in vec2 aPos;\n" \
+    "out vec4 vertexColor;\n" \
     "void main()\n" \
     "{\n" \
     "   gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);\n" \
+    "   vertexColor = vec4(0.5, 0.0, 0.0, 1.0);\n" \
     "}\n";
 }
 
 const char* fragmentShaderSource = \
     "#version 330 core\n" \
     "out vec4 FragColor;\n" \
+    "in vec4 vertexColor;\n" \
     "void main()\n" \
     "{\n" \
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n" \
+    "   FragColor = vertexColor;\n" \
     "}\n";
 
 int main() {
