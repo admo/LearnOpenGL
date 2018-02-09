@@ -20,7 +20,7 @@ unsigned int indices[] = {
 
 const char* vertexShaderSource = \
     "#version 330 core\n" \
-    "layout (location = 0) in vec2 aPos;\n" \
+    "in vec2 aPos;\n" \
     "void main()\n" \
     "{\n" \
     "   gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);\n" \
@@ -98,6 +98,10 @@ int main() {
     const auto shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
+
+    const GLuint shaderAttribute  = 0;
+    glBindAttribLocation(shaderProgram, shaderAttribute, "aPos");
+
     glLinkProgram(shaderProgram);
     {
         int success;
@@ -124,8 +128,8 @@ int main() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(shaderAttribute, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), (void*)0);
+    glEnableVertexAttribArray(shaderAttribute);
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
