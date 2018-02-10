@@ -7,10 +7,10 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow* window);
 
 float vertices[] = {
-        0.5f, 0.5f,
-        0.5f, -0.5f,
-        -0.5f, -0.5f,
-        -0.5f, 0.5f
+         0.5f,  0.5f, 1.0f, 0.0f, 0.0f,
+         0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
+        -0.5f,  0.5f, 0.0f, 0.0f, 0.0f
 };
 
 unsigned int indices[] = {
@@ -20,20 +20,23 @@ unsigned int indices[] = {
 
 const char* vertexShaderSource = \
     "#version 330 core\n" \
-    "in vec2 aPos;\n" \
+    "in vec2 vertexPosition;\n" \
+    "in vec3 vertexColor;\n" \
+    "out vec3 color;\n" \
     "void main()\n" \
     "{\n" \
-    "   gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);\n" \
+    "   gl_Position = vec4(vertexPosition, 0.0, 1.0);\n" \
+    "   color = vertexColor;\n" \
     "}\n";
 }
 
 const char* fragmentShaderSource = \
     "#version 330 core\n" \
+    "in vec3 color;\n" \
     "out vec4 FragColor;\n" \
-    "uniform vec4 vertexColor;\n" \
     "void main()\n" \
     "{\n" \
-    "   FragColor = vertexColor;\n" \
+    "   FragColor = vec4(color, 1.0f);\n" \
     "}\n";
 
 int main() {
@@ -100,8 +103,10 @@ int main() {
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
 
-    const GLuint shaderAttribute  = 0;
-    glBindAttribLocation(shaderProgram, shaderAttribute, "aPos");
+    const GLuint vertexIndex  = 0;
+    const GLuint colorIndex = 1;
+    glBindAttribLocation(shaderProgram, vertexIndex, "vertexPosition");
+    glBindAttribLocation(shaderProgram, colorIndex, "vertexColor");
 
     glLinkProgram(shaderProgram);
     {
@@ -129,8 +134,11 @@ int main() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(shaderAttribute, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), (void*)0);
-    glEnableVertexAttribArray(shaderAttribute);
+    glVertexAttribPointer(vertexIndex, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)0);
+    glEnableVertexAttribArray(vertexIndex);
+
+    glVertexAttribPointer(colorIndex, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void*)(2*sizeof(float)));
+    glEnableVertexAttribArray(colorIndex);
 
     // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
