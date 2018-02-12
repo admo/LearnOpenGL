@@ -5,99 +5,131 @@
 #include "shader.h"
 
 #include <fstream>
-#include <functional>
-#include <memory>
-#include <iostream>
 #include <utility>
+#include <stdexcept>
+#include <vector>
 
 namespace {
-template <class T, class D>
-class Handler {
-public:
-    Handler()
-            : _t(T(), D())
-    {}
-
-    Handler(T t)
-            : _t(t, D())
-    {}
-
-    Handler(Handler&& h)
-            : _t(h.release(), std::forward<D>(h.get_deleter()))
-    {
-    }
-
-    ~Handler() {
-        D(t);
-    }
-
-    T release() {
-        return std::get<0>(_t);
-    }
-
-    D get_deleter() {
-        return std::get<1>(_t);
-    }
-
-private:
-    std::tuple<T, D> _t;
-};
-
-void foo(int*);
-
-using ShaderHandler = Handler<int, void(*)(int*)>;
-
-//using Dupa = Handler<int, &foo>;
-//using Blada = Handler<int, std::function<void(int)>(foo)>;
+void clearErrors() {
+    while (GL_NO_ERROR != glGetError());
+}
+void checkErrors() {
+}
 }
 
-Shader::Shader(const GLchar *vertexPath, const GLchar *fragmentPath) {
-    const auto vertexShader = compileShader(readShader(vertexPath).c_str(), GL_VERTEX_SHADER);
-    const auto fragmentShader = compileShader(readShader(fragmentPath).c_str(), GL_FRAGMENT_SHADER);
+class Shader {
+public:
+    Shader(const char* shaderPath, const GLint shaderType)
+    {
+        id = createShader(shaderType);
+
+        std::vector<GLchar> shaderCode{readShader(shaderPath)};
+
+        setShaderCode(shaderCode.data(), static_cast<GLint>(shaderCode.size()));
+        compileShader();
+        checkCompileForErrors();
+    }
+
+    Shader(Shader&& rhs) noexcept {
+        std::swap(id, rhs.id);
+    }
+
+    Shader& operator=(Shader&& rhs) noexcept {
+        std::swap(id, rhs.id);
+
+        return *this;
+    }
+
+    ~Shader() {
+        if (NoShader != id) {
+            glDeleteShader(id);
+            checkError("glDeleteShader");
+        }
+    }
+
+    GLuint getId() const {
+        if (NoShader == id)
+            throw std::runtime_error("");
+
+        return id;
+    }
+
+    Shader& operator=(const Shader& rhs) = delete;
+    explicit Shader(const Shader&) = delete;
+
+private:
+    static constexpr GLuint NoShader = 0;
+    GLuint id{NoShader};
+
+    GLuint createShader(GLint shaderType) const {
+        const auto id = glCreateShader(shaderType);
+        checkError("glCreateShader");
+
+        if (0 == id)
+            throw std::runtime_error("");
+
+        return  id;
+    }
+
+    void setShaderCode(const GLchar *shaderCode, const GLint size) const {
+        glShaderSource(id, 1, &shaderCode, &size);
+        checkError("glShaderSource");
+    }
+
+    void compileShader() const {
+        glCompileShader(id);
+        checkError("glCompileShader");
+    }
+
+    void checkCompileForErrors() const {
+        GLint success;
+        glGetShaderiv(id, GL_COMPILE_STATUS, &success);
+        checkError("glGetShaderiv");
+
+        if (!success) {
+            char log[512];
+            glGetShaderInfoLog(id, sizeof(log), NULL, log);
+            checkError("glGetShaderInfoLog");
+
+            throw std::runtime_error(log);
+        }
+    }
+
+    void checkError(const char* functionName) const {
+        const auto error = glGetError();
+        if (GL_NO_ERROR != error)
+            throw std::runtime_error(std::string("Error in ") + functionName + " code: " + std::to_string(error));
+    }
+
+    std::vector<GLchar> readShader(const char* shaderPath) const {
+        std::vector<GLchar> shaderCode;
+        std::ifstream shaderFile;
+
+        shaderFile.exceptions(std::ios::failbit | std::ios::badbit);
+        shaderFile.open(shaderPath, std::ios::binary);
+        shaderFile.seekg(0, std::ios::end);
+        const auto size = shaderFile.tellg();
+        shaderCode.resize(static_cast<size_t>(size));
+        shaderFile.seekg(0, std::ios::beg);
+        shaderFile.read(shaderCode.data(), shaderCode.size());
+
+        return shaderCode;
+    }
+};
+
+Program::Program(const char *vertexPath, const char *fragmentPath) {
+    const Shader vertexShader{vertexPath, GL_VERTEX_SHADER};
+    const Shader fragmentShader{fragmentPath, GL_FRAGMENT_SHADER};
 
     int success;
     id = glCreateProgram();
-    glAttachShader(id, vertexShader);
-    glAttachShader(id, fragmentShader);
+    glAttachShader(id, vertexShader.getId());
+    glAttachShader(id, fragmentShader.getId());
     glLinkProgram(id);
     glGetProgramiv(id, GL_LINK_STATUS, &success);
     if (!success) {
         char infoLog[512];
         glGetProgramInfoLog(id, sizeof(infoLog), NULL, infoLog);
-        std::clog << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << "\n";
+//        std::clog << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << "\n";
     }
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-}
-
-int Shader::compileShader(const char *shaderCode, int shaderType) const {
-    unsigned int shaderId;
-    int success;
-    shaderId = glCreateShader(shaderType);
-    glShaderSource(shaderId, 1, &shaderCode, NULL);
-    glCompileShader(shaderId);
-    glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        char infoLog[512];
-        glGetShaderInfoLog(shaderId, sizeof(infoLog), NULL, infoLog);
-        std::clog << "ERROR::SHADER::COMPILATION_FAILED\n" << infoLog << "\n";
-    }
-
-    return shaderId;
-}
-
-std::string Shader::readShader(const GLchar *path) const {
-    std::string shaderCode;
-    std::ifstream shaderFile;
-
-    shaderFile.exceptions(std::ios::failbit | std::ios::badbit);
-    shaderFile.open(path, std::ios::binary);
-    shaderFile.seekg(0, std::ios::end);
-    const auto size = shaderFile.tellg();
-    shaderCode.resize(static_cast<size_t>(size));
-    shaderFile.seekg(0, std::ios::beg);
-    shaderFile.read(&shaderCode[0], shaderCode.size());
-
-    return shaderCode;
 }

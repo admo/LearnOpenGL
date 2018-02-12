@@ -7,20 +7,16 @@
 
 #pragma once
 
-class Shader {
+class Program {
 public:
     unsigned int id;
 
-    Shader(const GLchar* vertexPath, const GLchar* fragmentPath);
+    Program(const char *vertexPath, const char *fragmentPath);
 
     void use();
 
     void setBool(const std::string &name, bool value) const;
     void setInt(const std::string &name, int value) const;
     void setFloat(const std::string &name, float) const;
-
-private:
-    std::string readShader(const GLchar *path) const;
-    int compileShader(const char *shaderCode, int shaderType) const;
 };
 
