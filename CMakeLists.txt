@@ -12,6 +12,6 @@ add_subdirectory(glfw)
 include_directories(${CMAKE_SOURCE_DIR}/glad/include)
 include_directories(${CMAKE_SOURCE_DIR}/glfw/include)
 
-set(SOURCE_FILES main.cpp glad/src/glad.c)
+set(SOURCE_FILES main.cpp glad/src/glad.c shader.cpp shader.h)
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} glfw)
