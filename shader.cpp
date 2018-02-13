@@ -10,6 +10,35 @@
 #include <vector>
 
 namespace {
+template <class T, class... A>
+class Call_proxy {
+    using pointer_t = T (*)(A...);
+    pointer_t p;
+
+public:
+    Call_proxy(pointer_t pp): p(pp) {}
+    ~Call_proxy() {
+        std::cout << "suffix\n";
+    }
+    T operator()(A&&... args) {
+        return p(std::forward<A>(args)...);
+    }
+};
+
+template <class T, class... A>
+class wrap_fn {
+    using pointer_t = T (*)(A...);
+    pointer_t p;
+
+public:
+    wrap_fn(pointer_t pp) : p(pp) {}
+
+    T operator()(A&&... args) {
+        std::cout << "prefix\n";
+        return Call_proxy<T,A...>(p)(std::forward<A>(args)...);
+    }
+};
+
 void clearErrors() {
     while (GL_NO_ERROR != glGetError());
 }
