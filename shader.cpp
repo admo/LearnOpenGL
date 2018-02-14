@@ -10,33 +10,26 @@
 #include <vector>
 
 namespace {
-template <class T, class... A>
-class Call_proxy {
-    using pointer_t = T (*)(A...);
-    pointer_t p;
+template <class T, class... A, class... Ts>
+decltype(auto) wrap(T (&fun)(A...), Ts&&... args) {
+    using fun_reference_t = T (&)(A...);
 
-public:
-    Call_proxy(pointer_t pp): p(pp) {}
-    ~Call_proxy() {
-        std::cout << "suffix\n";
-    }
-    T operator()(A&&... args) {
-        return p(std::forward<A>(args)...);
-    }
-};
+    class SuffixWrap {
+        fun_reference_t fun_reference;
 
-template <class T, class... A>
-class wrap_fn {
-    using pointer_t = T (*)(A...);
-    pointer_t p;
+    public:
+        explicit SuffixWrap(fun_reference_t fun_reference) noexcept: fun_reference(fun_reference) {}
 
-public:
-    wrap_fn(pointer_t pp) : p(pp) {}
+        ~SuffixWrap() noexcept(false) {
+            std::cout << "suffix\n";
+        }
 
-    T operator()(A&&... args) {
-        std::cout << "prefix\n";
-        return Call_proxy<T,A...>(p)(std::forward<A>(args)...);
-    }
+        T operator()(Ts... args) {
+            return fun_reference(std::forward<Ts>(args)...);
+        }
+    };
+
+    return SuffixWrap(fun)(std::forward<Ts>(args)...);
 };
 
 void clearErrors() {
