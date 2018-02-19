@@ -9,9 +9,10 @@
 
 class Program {
 public:
-    unsigned int id;
+    unsigned int id{0};
 
     Program(const char *vertexPath, const char *fragmentPath);
+    ~Program();
 
     void use();
 

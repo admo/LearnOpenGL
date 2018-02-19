@@ -1,45 +1,27 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include "shader.h"
 #include <iostream>
 
 namespace {
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
-void processInput(GLFWwindow* window);
+
+void processInput(GLFWwindow *window);
 
 float vertices[] = {
-         0.5f,  0.5f, 1.0f, 0.0f, 0.0f,
-         0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+        0.5f, 0.5f, 1.0f, 0.0f, 0.0f,
+        0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
         -0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
-        -0.5f,  0.5f, 0.0f, 0.0f, 0.0f
+        -0.5f, 0.5f, 0.0f, 0.0f, 0.0f
 };
 
 unsigned int indices[] = {
         0, 1, 3,
         1, 2, 3
 };
-
-const char* vertexShaderSource = \
-    "#version 330 core\n" \
-    "in vec2 vertexPosition;\n" \
-    "in vec3 vertexColor;\n" \
-    "out vec3 color;\n" \
-    "void main()\n" \
-    "{\n" \
-    "   gl_Position = vec4(vertexPosition, 0.0, 1.0);\n" \
-    "   color = vertexColor;\n" \
-    "}\n";
 }
 
-const char* fragmentShaderSource = \
-    "#version 330 core\n" \
-    "in vec3 color;\n" \
-    "out vec4 FragColor;\n" \
-    "void main()\n" \
-    "{\n" \
-    "   FragColor = vec4(color, 1.0f);\n" \
-    "}\n";
-
-int main() {
+int main() try {
     // glfw: initialize and configure
     // ------------------------------
     if (!glfwInit()) {
@@ -68,58 +50,12 @@ int main() {
         return -1;
     }
 
-    // build and compile our shader program
-    // ------------------------------------
-    // vertex shader
-    const auto vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-    {
-        int success;
-        char infoLog[512];
-        glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-            std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << '\n';
-        }
-    }
-
-    // fragment shader
-    const auto fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-    {
-        int success;
-        char infoLog[512];
-        glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-            std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << '\n';
-        }
-    }
-
-    // link shaders
-    const auto shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
+    Program shaderProgram("shader.vert", "shader.frag");
 
     const GLuint vertexIndex  = 0;
     const GLuint colorIndex = 1;
-    glBindAttribLocation(shaderProgram, vertexIndex, "vertexPosition");
-    glBindAttribLocation(shaderProgram, colorIndex, "vertexColor");
-
-    glLinkProgram(shaderProgram);
-    {
-        int success;
-        char infoLog[512];
-        glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-        if (!success) {
-            glGetShaderInfoLog(shaderProgram, 512, NULL, infoLog);
-            std::cout << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" << infoLog << '\n';
-        }
-    }
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    glBindAttribLocation(shaderProgram.id, vertexIndex, "vertexPosition");
+    glBindAttribLocation(shaderProgram.id, colorIndex, "vertexColor");
 
     unsigned int VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
@@ -154,8 +90,8 @@ int main() {
     // uncomment this call to draw in wireframe polygons.
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    const auto vertexColorLocation = glGetUniformLocation(shaderProgram, "vertexColor");
-    glUseProgram(shaderProgram);
+    const auto vertexColorLocation = glGetUniformLocation(shaderProgram.id, "vertexColor");
+    shaderProgram.use();
 
     // render loop
     while (!glfwWindowShouldClose(window)) {
@@ -185,10 +121,13 @@ int main() {
 
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-    glDeleteProgram(shaderProgram);
+    glDeleteProgram(shaderProgram.id);
 
     glfwTerminate();
     return 0;
+}
+catch (std::exception& e) {
+    std::clog << "Exception: " << e.what();
 }
 
 namespace {

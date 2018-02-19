@@ -10,33 +10,18 @@
 #include <vector>
 
 namespace {
-template <class T, class... A, class... Ts>
-decltype(auto) wrap(T (&fun)(A...), Ts&&... args) {
-    using fun_reference_t = T (&)(A...);
-
-    class SuffixWrap {
-        fun_reference_t fun_reference;
-
-    public:
-        explicit SuffixWrap(fun_reference_t fun_reference) noexcept: fun_reference(fun_reference) {}
-
-        ~SuffixWrap() noexcept(false) {
-            std::cout << "suffix\n";
+template <class T, class... Ts>
+decltype(auto) wrap_opengl(T fun, Ts&&... args) {
+    struct guard_t {
+        ~guard_t() noexcept(false) {
+            const auto& error = glGetError();
+            if (GL_NO_ERROR != error) throw std::runtime_error(std::string("Error in OpenGL: ") + std::to_string(error));
         }
+    } guard;
 
-        T operator()(Ts... args) {
-            return fun_reference(std::forward<Ts>(args)...);
-        }
-    };
-
-    return SuffixWrap(fun)(std::forward<Ts>(args)...);
-};
-
-void clearErrors() {
     while (GL_NO_ERROR != glGetError());
-}
-void checkErrors() {
-}
+    return fun(std::forward<Ts>(args)...);
+};
 }
 
 class Shader {
@@ -62,17 +47,11 @@ public:
         return *this;
     }
 
-    ~Shader() {
-        if (NoShader != id) {
-            glDeleteShader(id);
-            checkError("glDeleteShader");
-        }
+    ~Shader() noexcept {
+        wrap_opengl(glDeleteShader, id); // 0 is silently ignored by this function
     }
 
-    GLuint getId() const {
-        if (NoShader == id)
-            throw std::runtime_error("");
-
+    GLuint get() const noexcept {
         return id;
     }
 
@@ -84,43 +63,32 @@ private:
     GLuint id{NoShader};
 
     GLuint createShader(GLint shaderType) const {
-        const auto id = glCreateShader(shaderType);
-        checkError("glCreateShader");
+        const auto id = wrap_opengl(glCreateShader, shaderType);
 
-        if (0 == id)
+        if (NoShader == id)
             throw std::runtime_error("");
 
         return  id;
     }
 
     void setShaderCode(const GLchar *shaderCode, const GLint size) const {
-        glShaderSource(id, 1, &shaderCode, &size);
-        checkError("glShaderSource");
+        wrap_opengl(glShaderSource, id, 1, &shaderCode, &size);
     }
 
     void compileShader() const {
-        glCompileShader(id);
-        checkError("glCompileShader");
+        wrap_opengl(glCompileShader, id);
     }
 
     void checkCompileForErrors() const {
         GLint success;
-        glGetShaderiv(id, GL_COMPILE_STATUS, &success);
-        checkError("glGetShaderiv");
+        wrap_opengl(glGetShaderiv, id, GL_COMPILE_STATUS, &success);
 
         if (!success) {
             char log[512];
-            glGetShaderInfoLog(id, sizeof(log), NULL, log);
-            checkError("glGetShaderInfoLog");
+            wrap_opengl(glGetShaderInfoLog, id, sizeof(log), nullptr, log);
 
             throw std::runtime_error(log);
         }
-    }
-
-    void checkError(const char* functionName) const {
-        const auto error = glGetError();
-        if (GL_NO_ERROR != error)
-            throw std::runtime_error(std::string("Error in ") + functionName + " code: " + std::to_string(error));
     }
 
     std::vector<GLchar> readShader(const char* shaderPath) const {
@@ -144,14 +112,22 @@ Program::Program(const char *vertexPath, const char *fragmentPath) {
     const Shader fragmentShader{fragmentPath, GL_FRAGMENT_SHADER};
 
     int success;
-    id = glCreateProgram();
-    glAttachShader(id, vertexShader.getId());
-    glAttachShader(id, fragmentShader.getId());
-    glLinkProgram(id);
-    glGetProgramiv(id, GL_LINK_STATUS, &success);
+    id = wrap_opengl(glCreateProgram);
+    wrap_opengl(glAttachShader, id, vertexShader.get());
+    wrap_opengl(glAttachShader, id, fragmentShader.get());
+    wrap_opengl(glLinkProgram, id);
+    wrap_opengl(glGetProgramiv, id, GL_LINK_STATUS, &success);
     if (!success) {
         char infoLog[512];
-        glGetProgramInfoLog(id, sizeof(infoLog), NULL, infoLog);
+        wrap_opengl(glGetProgramInfoLog, id, sizeof(infoLog), nullptr, infoLog);
 //        std::clog << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << "\n";
     }
+}
+
+void Program::use() {
+    wrap_opengl(glUseProgram, id);
+}
+
+Program::~Program() {
+    glDeleteProgram(id); // 0 is silently ignored by this function
 }
