@@ -23,6 +23,19 @@ public:
     bool link() const;
     void bind() const;
 
+    void setUniformValue(GLint location, GLint value) const;
+    void setUniformValue(GLint location, GLuint value) const;
+    void setUniformValue(GLint location, GLfloat value) const;
+    void setUniformValue(GLint location, GLint x, GLint y) const;
+    void setUniformValue(GLint location, GLuint x, GLuint y) const;
+    void setUniformValue(GLint location, GLfloat x, GLfloat y) const;
+    void setUniformValue(GLint location, GLint x, GLint y, GLint z) const;
+    void setUniformValue(GLint location, GLuint x, GLuint y, GLuint z) const;
+    void setUniformValue(GLint location, GLfloat x, GLfloat y, GLfloat z) const;
+    void setUniformValue(GLint location, GLint x, GLint y, GLint z, GLint w) const;
+    void setUniformValue(GLint location, GLuint x, GLuint y, GLuint z, GLuint w) const;
+    void setUniformValue(GLint location, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const;
+
 private:
     static constexpr GLuint NoProgram{0};
     GLuint _id{NoProgram};

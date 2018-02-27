@@ -5,10 +5,12 @@
 #include "Shader.h"
 #include <type_traits>
 #include <stdexcept>
+#include <iostream>
 #include "utils.h"
 
 Shader::Shader(Shader::Type type)
-        : data{glCreateShader(static_cast<std::underlying_type<Type>::type>(type)), type} {}
+        : id{glCreateShader(static_cast<std::underlying_type<Type>::type>(type))}
+        , type{type} {}
 
 Shader::Shader(Shader::Type type, const char *filename)
         : Shader{type} {
@@ -16,16 +18,18 @@ Shader::Shader(Shader::Type type, const char *filename)
 }
 
 Shader::Shader(Shader &&other) noexcept {
-    data.swap(other.data);
+    std::swap(id, other.id);
+    std::swap(type, other.type);
 }
 
 Shader &Shader::operator=(Shader &&other) noexcept {
-    data.swap(other.data);
+    std::swap(id, other.id);
+    std::swap(type, other.type);
     return *this;
 }
 
 Shader::~Shader() {
-    glDeleteShader(std::get<0>(data));
+    glDeleteShader(id);
 }
 
 void Shader::compileSourceFile(const char *filename) {
@@ -36,21 +40,25 @@ void Shader::compileSourceFile(const char *filename) {
 }
 
 void Shader::setShaderCode(const GLchar *shaderCode, const GLint size) const {
-    glShaderSource(std::get<0>(data), 1, &shaderCode, &size);
+    glShaderSource(id, 1, &shaderCode, &size);
 }
 
 void Shader::compileShader() const {
-    glCompileShader(std::get<0>(data));
+    glCompileShader(id);
 }
 
 void Shader::checkCompileForErrors() const {
     GLint success;
-    glGetShaderiv(std::get<0>(data), GL_COMPILE_STATUS, &success);
+    glGetShaderiv(id, GL_COMPILE_STATUS, &success);
 
-   if (success != GL_TRUE)
+   if (success != GL_TRUE) {
+       char info[1024];
+       glGetShaderInfoLog(id, 1024, nullptr, info);
+       std::clog << info << '\n';
        throw std::runtime_error("Error when compiling shader");
+   }
 }
 
-GLuint Shader::id() const {
-    return std::get<0>(data);
+GLuint Shader::getId() const {
+    return id;
 }

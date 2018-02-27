@@ -7,32 +7,33 @@
 #include <type_traits>
 
 Buffer::Buffer(Buffer::Type type)
-        : data{NoBuffer, type}
-{
-    glGenBuffers(1, &std::get<0>(data));
+        : type{type} {
+    glCreateBuffers(1, &id);
 }
 
 Buffer::Buffer(Buffer &&other) noexcept {
-    data.swap(other.data);
+    std::swap(id, other.id);
+    std::swap(type, other.type);
 }
 
 Buffer &Buffer::operator=(Buffer &&other) noexcept {
-    data.swap(other.data);
+    std::swap(id, other.id);
+    std::swap(type, other.type);
     return *this;
 }
 
 Buffer::~Buffer() {
-    glDeleteBuffers(1, &std::get<0>(data));
+    glDeleteBuffers(1, &id);
 }
 
 void Buffer::bind() const {
-    glBindBuffer(static_cast<std::underlying_type<Type>::type>(std::get<1>(data)), std::get<0>(data));
+    glBindBuffer(static_cast<std::underlying_type<Type>::type>(type), id);
 }
 
 void Buffer::release() const {
-    glBindBuffer(static_cast<std::underlying_type<Type>::type>(std::get<1>(data)), NoBuffer);
+    glBindBuffer(static_cast<std::underlying_type<Type>::type>(type), NoBuffer);
 }
 
 GLuint Buffer::getId() const {
-    return std::get<0>(data);
+    return id;
 }

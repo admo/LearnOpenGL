@@ -21,15 +21,16 @@ public:
     Shader(Shader&& other) noexcept;
     Shader& operator=(Shader&& other) noexcept;
     Shader& operator=(const Shader& rhs) = delete;
-    explicit Shader(const Shader&) = delete;
+    Shader(const Shader&) = delete;
     ~Shader();
 
     void compileSourceFile(const char *filename);
-    GLuint id() const;
+    GLuint getId() const;
 
 private:
     static constexpr GLuint NoShader = 0;
-    std::tuple<GLuint, Type> data{NoShader, Type::Vertex};
+    GLuint id{NoShader};
+    Type type{Type::Vertex};
 
     void setShaderCode(const GLchar *shaderCode, GLint size) const;
     void compileShader() const;

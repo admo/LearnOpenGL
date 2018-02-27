@@ -8,6 +8,7 @@
 
 #include <tuple>
 #include <vector>
+#include <iostream>
 
 class Buffer {
 public:
@@ -17,6 +18,13 @@ public:
     };
 
     explicit Buffer(Type type);
+
+    template <class T>
+    Buffer(Type type, const std::vector<T> &data)
+            : Buffer(type) {
+        copy(data);
+    }
+
     Buffer(Buffer&& other) noexcept;
     explicit Buffer(const Buffer&) = delete;
     Buffer& operator=(Buffer&& other) noexcept;
@@ -28,12 +36,13 @@ public:
     GLuint getId() const;
 
     template <class T>
-    void copy(const std::vector<T> &d) const {
-        glNamedBufferData(std::get<0>(data), d.size()*sizeof(T), d.data(), GL_STATIC_DRAW);
+    void copy(const std::vector<T> &data) const {
+        glNamedBufferData(id, data.size()*sizeof(T), data.data(), GL_STATIC_DRAW);
     }
 
 
 private:
     static constexpr GLuint NoBuffer{0};
-    std::tuple<GLuint, Type> data{NoBuffer, Type::Vertex};
+    GLuint id{NoBuffer};
+    Type type{Type::Vertex};
 };

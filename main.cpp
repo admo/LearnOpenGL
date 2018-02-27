@@ -3,6 +3,7 @@
 #include "Shader.h"
 #include "Program.h"
 #include "Buffer.h"
+#include "VertexArray.h"
 #include <iostream>
 
 namespace {
@@ -54,28 +55,21 @@ int main() try {
         }
 
         Program program;
-        program.attachShader({Shader::Type::Vertex, "shader.vert"});
-        program.attachShader({Shader::Type::Fragment, "shader.frag"});
+        program.attachShader({Shader::Type::Vertex, "../shader.vert"});
+        program.attachShader({Shader::Type::Fragment, "../shader.frag"});
         program.link();
 
         const auto vertexIndex = program.getAttribLocation("vertexPosition");
         const auto colorIndex = program.getAttribLocation("vertexColor");
 
-        Buffer vbo(Buffer::Type::Vertex);
-        Buffer ebo(Buffer::Type::Index);
+        Buffer vbo(Buffer::Type::Vertex, vertices);
+        Buffer ebo(Buffer::Type::Index, indices);
 
-        unsigned int VAO;
-        glGenVertexArrays(1, &VAO);
-        // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-        glBindVertexArray(VAO);
+        VertexArray vao;
+        vao.bind();
 
         vbo.bind();
-        glBufferData(GL_ARRAY_BUFFER, vertices.size()*sizeof(float), vertices.data(), GL_STATIC_DRAW);
-
         ebo.bind();
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices)*sizeof(unsigned), indices.data(), GL_STATIC_DRAW);
-//        vbo.copy(vertices);
-//        vbo.copy(indices);
 
         glVertexAttribPointer(vertexIndex, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr);
         glEnableVertexAttribArray(vertexIndex);
@@ -83,22 +77,19 @@ int main() try {
         glVertexAttribPointer(colorIndex, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) (2 * sizeof(float)));
         glEnableVertexAttribArray(colorIndex);
 
-        // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
         // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
         //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
         // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
         // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-        glBindVertexArray(0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        vao.release();
 
         // uncomment this call to draw in wireframe polygons.
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-        const auto vertexColorLocation = program.getUniformLocation("vertexColor");
+//        const auto vertexColorLocation = program.getUniformLocation("ourColor");
         program.bind();
+        vao.bind();
 
         // render loop
         while (!glfwWindowShouldClose(window)) {
@@ -112,21 +103,17 @@ int main() try {
             glClear(GL_COLOR_BUFFER_BIT);
 
             // draw our first triangle
-            const auto timeValue = glfwGetTime();
-            const auto greenValue = static_cast<GLfloat>((std::sin(timeValue) / 2.0f) + 0.5f);
+//            const auto timeValue = glfwGetTime();
+//            const auto greenValue = static_cast<GLfloat>((std::sin(timeValue) / 2.0f) + 0.5f);
 
-            glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
-            glBindVertexArray(VAO);
+//            program.setUniformValue(vertexColorLocation, greenValue);
 //        glDrawArrays(GL_TRIANGLES, 0, 3);
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-            glBindVertexArray(0);
 
             // check and call events and swap the buffers
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
-
-        glDeleteVertexArrays(1, &VAO);
     }
 
     glfwTerminate();
