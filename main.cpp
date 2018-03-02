@@ -68,14 +68,23 @@ int main() try {
         VertexArray vao;
         vao.bind();
 
-        vbo.bind();
-        ebo.bind();
+        glVertexAttribFormat(vertexIndex, 2, GL_FLOAT, GL_FALSE, 0); // version without binding vao is glVertexArrayVertexBuffer
+        glVertexAttribBinding(vertexIndex, vertexIndex); // version without binding vao is glVertexArrayAttribBinding
+        glBindVertexBuffer(vertexIndex, vbo.getId(), 0, 5*sizeof(float)); // version without binding vao is glVertexArrayAttribFormat
+        glEnableVertexAttribArray(vertexIndex); // version without binding vao is glVertexArrayVertexBuffer glEnableVertexArrayAttrib
 
-        glVertexAttribPointer(vertexIndex, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr);
-        glEnableVertexAttribArray(vertexIndex);
+//        glBindVertexBuffer(colorIndex, vbo.getId(), vertices.data(), 5*sizeof(float)); // version without binding vao is glVertexArrayAttribFormat
+//        glEnableVertexAttribArray(colorIndex); // version without binding vao is glVertexArrayVertexBuffer glEnableVertexArrayAttrib
+//        glVertexAttribFormat(colorIndex, 2, GL_FLOAT, GL_FALSE, 0); // version without binding vao is glVertexArrayVertexBuffer
 
-        glVertexAttribPointer(colorIndex, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) (2 * sizeof(float)));
-        glEnableVertexAttribArray(colorIndex);
+//        vbo.bind();
+//        ebo.bind();
+//
+//        glVertexAttribPointer(vertexIndex, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr);
+//        glEnableVertexAttribArray(vertexIndex);
+//
+//        glVertexAttribPointer(colorIndex, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) (2 * sizeof(float)));
+//        glEnableVertexAttribArray(colorIndex);
 
         // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
         //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
